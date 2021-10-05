@@ -17,10 +17,8 @@
 class TheGame
 {
     int size_of_board;
-    std::set<std::pair<int, int>> live_cells;
-    
-    std::vector<std::vector<char>> board;
-    std::vector<std::vector<int>> current_around_count;
+    std::set<std::pair<int, int>> live_cells; // array of current live cells
+    std::vector<std::vector<int>> current_around_count; 
     
     public:
     int get_board_size();
@@ -32,7 +30,7 @@ class TheGame
     bool next_step();
 
     TheGame(int size)
-    : size_of_board(size), board(size, std::vector<char>(size, '-')), current_around_count(size, std::vector<int>(size, 0))
+    : size_of_board(size), current_around_count(size, std::vector<int>(size, 0))
     {
         std::cout << ">>> The Game starts ... <<<" << std::endl;
     }
@@ -73,7 +71,14 @@ void TheGame::display_board()
     {
         for (int j = 0; j < this->size_of_board; j++)
         {
-            std::cout << this->board[i][j] << " ";
+            if(this->live_cells.find({i, j}) != this-> live_cells.end())
+            {
+                std::cout << "* ";
+            }
+            else
+            {
+                std::cout << "- ";
+            }
         }
         std::cout << std::endl;
     }
@@ -84,7 +89,6 @@ void TheGame::assign_live_cells()
 {
     for (const auto& elem: this->live_cells)
     {
-        this->board[elem.first][elem.second] = '*';
         update_around(this->current_around_count, elem.first, elem.second, 1);
     }
 }
@@ -128,7 +132,6 @@ void TheGame::revive_cell()
 bool TheGame::next_step()
 {
     bool something_changed = false;
-    auto new_board = this->board;
     auto new_around_count = this->current_around_count;
     auto new_live_cells = this->live_cells;
 
@@ -141,7 +144,6 @@ bool TheGame::next_step()
             {
                 // DEBUG PRINTS
                 // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
-                new_board[i][j] = '-';
                 new_live_cells.erase(temp);
                 update_around(new_around_count, i, j, -1);
                 something_changed = true;
@@ -151,14 +153,12 @@ bool TheGame::next_step()
             {
                 // DEBUG PRINTS
                 // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
-                new_board[i][j] = '*';
                 new_live_cells.insert(temp);
                 update_around(new_around_count, i, j, 1);
                 something_changed = true;
             }
         }
     }
-    this->board = new_board;
     this->live_cells = new_live_cells;
     this->current_around_count = new_around_count;
     // ------- UNCOMMENT TO DEBUG ------
