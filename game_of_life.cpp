@@ -24,6 +24,7 @@ class TheGame
     
     public:
     int get_board_size();
+    bool is_live_cells();
     void display_board();
     void revive_cell();
     void assign_live_cells();
@@ -33,9 +34,10 @@ class TheGame
     TheGame(int size)
     : size_of_board(size), board(size, std::vector<char>(size, '-')), current_around_count(size, std::vector<int>(size, 0))
     {
-        std::cout << "The Game starts ... " << std::endl;
+        std::cout << ">>> The Game starts ... <<<" << std::endl;
     }
 };
+
 void update_around(std::vector<std::vector<int>> & around_count, int x, int y, int update)
 {
     // DEBUG PRINTS
@@ -58,6 +60,11 @@ void update_around(std::vector<std::vector<int>> & around_count, int x, int y, i
 int TheGame::get_board_size()
 {
     return this->size_of_board;
+}
+
+bool TheGame::is_live_cells()
+{
+    return !live_cells.empty();
 }
 
 void TheGame::display_board()
@@ -85,11 +92,11 @@ void TheGame::assign_live_cells()
 void TheGame::revive_glyder()
 {
     this->live_cells.clear();
-    this->live_cells.insert(std::make_pair(2, 0));
-    this->live_cells.insert(std::make_pair(2, 1));
-    this->live_cells.insert(std::make_pair(2, 2));
-    this->live_cells.insert(std::make_pair(0, 1));
-    this->live_cells.insert(std::make_pair(1, 2));
+    this->live_cells.insert({2, 0});
+    this->live_cells.insert({2, 1});
+    this->live_cells.insert({2, 2});
+    this->live_cells.insert({0, 1});
+    this->live_cells.insert({1, 2});
 }
 
 void TheGame::revive_cell()
@@ -113,7 +120,7 @@ void TheGame::revive_cell()
             std::cout << "Please, enter integer numbers more than 0 and less than " << this->size_of_board << std::endl;
             continue;
         }
-        this->live_cells.insert(std::make_pair(x, y));
+        this->live_cells.insert({x, y});
         break;
     }
 }
@@ -121,16 +128,16 @@ void TheGame::revive_cell()
 bool TheGame::next_step()
 {
     bool something_changed = false;
-    std::vector<std::vector<char>> new_board = this->board;
-    std::vector<std::vector<int>> new_around_count = this->current_around_count;
+    auto new_board = this->board;
+    auto new_around_count = this->current_around_count;
     auto new_live_cells = this->live_cells;
 
     for (int i = 0; i < this->size_of_board; i++)
     {
         for (int j = 0; j < this->size_of_board; j++)
         {
-            std::pair<int, int> temp = std::make_pair(i, j);
-            if (((this->current_around_count[i][j] <= 1) || (this->current_around_count[i][j] >= 4)) && std::count(this->live_cells.begin(),this-> live_cells.end(), temp))
+            auto temp = std::make_pair(i, j);
+            if (((this->current_around_count[i][j] <= 1) || (this->current_around_count[i][j] >= 4)) && (this->live_cells.find(temp) != this-> live_cells.end()))
             {
                 // DEBUG PRINTS
                 // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
@@ -140,7 +147,7 @@ bool TheGame::next_step()
                 something_changed = true;
             }
 
-            if (((this->current_around_count[i][j] == 3) && !(std::count(this->live_cells.begin(), this->live_cells.end(), temp))))
+            if (((this->current_around_count[i][j] == 3) && (this->live_cells.find(temp) == this-> live_cells.end())))
             {
                 // DEBUG PRINTS
                 // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
@@ -217,6 +224,11 @@ int main()
         }
         if (ans[0] == '2')
         {
+            if(!new_game.is_live_cells())
+            {
+                std::cout << "You have not revived a single cell, the game will not be interesting." << std::endl;
+                continue;
+            }
             new_game.assign_live_cells();
             break;   
         }
@@ -236,7 +248,7 @@ int main()
         {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
-            std::cout << "Undefined input:" << ans << ". Try again." << std::endl;
+            std::cout << "Wrong input:" << ans << ". Try again." << std::endl;
             continue;
         }
     }
@@ -244,11 +256,18 @@ int main()
     while (true)
     {
         new_game.display_board();
-        std::cout << ">> Choose: \n>> 1 - to play game automatically \n>> 2 - to see one next step\n: ";
-        char way;
+        std::cout << ">> Choose: \n>> 1 - to play game automatically \n>> 2 - to see one next step\n:" << std::endl;
+        std::string way;
         std::cin >> way;
         bool something_changed = false;
-        if (way == '2')
+        if(way.size() != 1)
+        {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
+            std::cout << "Wrong input:" << way << ". Try again." << std::endl;
+            continue;
+        }
+        if (way[0] == '2')
         {
             something_changed = new_game.next_step();
             if(!something_changed)
@@ -258,7 +277,7 @@ int main()
             }
             continue;
         }
-        if (way == '1')
+        if (way[0] == '1')
         {
             do
             {
@@ -278,7 +297,7 @@ int main()
         {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(),'\n');
-            std::cout << "Undefined symbol:" << way << ". Try again." << std::endl;
+            std::cout << "Wrong input:" << way << ". Try again." << std::endl;
             continue;
         }
     }
