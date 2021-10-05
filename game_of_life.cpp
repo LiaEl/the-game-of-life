@@ -21,9 +21,6 @@ class TheGame
     std::vector<std::vector<char>> board;
     std::vector<std::vector<int>> current_around_count;
     
-    void increase_around(std::vector<std::vector<int>> & around_count, int x, int y);
-    void decrease_around(std::vector<std::vector<int>> & around_count, int x, int y);
-    
     public:
     int get_board_size();
     void display_board();
@@ -38,11 +35,30 @@ class TheGame
         std::cout << "The Game starts ... " << std::endl;
     }
 };
+void update_around(std::vector<std::vector<int>> & around_count, int x, int y, int update)
+{
+    // DEBUG PRINTS
+    // std::cout << "Updatting (" << x << ", " << y << ") to" << update << std::endl;
+    bool is_under = x < (around_count.size() - 1);
+    bool is_above = x > 0;
+    bool is_left = y > 0;
+    bool is_right = y < (around_count.size() - 1);
+    
+    if (is_under) around_count[x + 1][y] += update;
+    if (is_above) around_count[x - 1][y] += update;
+    if (is_left) around_count[x][y - 1] += update;
+    if (is_right) around_count[x][y + 1] += update;
+    if (is_under && is_left) around_count[x + 1][y - 1] += update;
+    if (is_under && is_right) around_count[x + 1][y + 1] += update;
+    if (is_above && is_left) around_count[x - 1][y - 1] += update;
+    if (is_above && is_right) around_count[x - 1][y + 1] += update;
+}
 
 int TheGame::get_board_size()
 {
     return this->size_of_board;
 }
+
 void TheGame::display_board()
 {
     for (int i = 0; i < this->size_of_board; i++)
@@ -61,7 +77,7 @@ void TheGame::assign_live_cells()
     for (int i = 0; i < this->live_cells.size(); i++)
     {
         this->board[this->live_cells[i].first][this->live_cells[i].second] = '*';
-        this->increase_around(this->current_around_count, this->live_cells[i].first, this->live_cells[i].second);
+        update_around(this->current_around_count, this->live_cells[i].first, this->live_cells[i].second, 1);
     }
 }
 
@@ -101,45 +117,6 @@ void TheGame::revive_cell()
     }
 }
 
-void TheGame::increase_around(std::vector<std::vector<int>> & around_count, int x, int y)
-{
-    // DEBUG PRINTS
-    // std::cout << "Increasing (" << x << ", " << y << ")" << std::endl;
-    bool is_under = x < (this->size_of_board - 1);
-    bool is_above = x > 0;
-    bool is_left = y > 0;
-    bool is_right = y < (this->size_of_board - 1);
-    
-    if (is_under) around_count[x + 1][y] += 1;
-    if (is_above) around_count[x - 1][y] += 1;
-    if (is_left) around_count[x][y - 1] += 1;
-    if (is_right) around_count[x][y + 1] += 1;
-    if (is_under && is_left) around_count[x + 1][y - 1] += 1;
-    if (is_under && is_right) around_count[x + 1][y + 1] += 1;
-    if (is_above && is_left) around_count[x - 1][y - 1] += 1;
-    if (is_above && is_right) around_count[x - 1][y + 1] += 1;
-}
-
-void TheGame::decrease_around(std::vector<std::vector<int>> & around_count, int x, int y)
-{
-    // DEBUG PRINTS
-    // std::cout << "Decreasing (" << x << ", " << y << ")" << std::endl;
-    bool is_under = x < (this->size_of_board - 1);
-    bool is_above = x > 0;
-    bool is_left = y > 0;
-    bool is_right = y < (this->size_of_board - 1);
-    
-    if (is_under) around_count[x + 1][y] -= 1;
-    if (is_above) around_count[x - 1][y] -= 1;
-    if (is_left) around_count[x][y - 1] -= 1;
-    if (is_right) around_count[x][y + 1] -= 1;
-    if (is_under && is_left) around_count[x + 1][y - 1] -= 1;
-    if (is_under && is_right) around_count[x + 1][y + 1] -= 1;
-    if (is_above && is_left) around_count[x - 1][y - 1] -= 1;
-    if (is_above && is_right) around_count[x - 1][y + 1] -= 1;
-
-}
-
 bool TheGame::next_step()
 {
     bool something_changed = false;
@@ -158,7 +135,7 @@ bool TheGame::next_step()
                 // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
                 new_board[i][j] = '-';
                 new_live_cells.erase(remove(new_live_cells.begin(), new_live_cells.end(), temp));
-                decrease_around(new_around_count, i, j);
+                update_around(new_around_count, i, j, -1);
                 something_changed = true;
             }
 
@@ -168,7 +145,7 @@ bool TheGame::next_step()
                 // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
                 new_board[i][j] = '*';
                 new_live_cells.push_back(temp);
-                increase_around(new_around_count, i, j);
+                update_around(new_around_count, i, j, 1);
                 something_changed = true;
             }
         }
