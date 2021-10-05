@@ -13,7 +13,7 @@ The "game" is a zero-player game, meaning that its evolution is determined by it
 
 4.Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 
-![image](https://user-images.githubusercontent.com/11137746/135992747-a69fb4eb-a37d-48bc-ba59-b799095be8ad.png)
+![image](https://upload.wikimedia.org/wikipedia/commons/e/e5/Gospers_glider_gun.gif)
 
 The universe of the Game of Life is an infinite two-dimensional orthogonal grid of square cells, each of which is in one of two possible states, alive or dead. Every cell interacts with its eight neighbours, which are the cells that are horizontally, vertically, or diagonally adjacent. At each step in time, the following transitions occur:
 
