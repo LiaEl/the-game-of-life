@@ -6,6 +6,7 @@
 #include <iomanip> 
 #include <limits>
 #include <string>
+#include <set>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -16,7 +17,7 @@
 class TheGame
 {
     int size_of_board;
-    std::vector<std::pair<int, int>> live_cells;
+    std::set<std::pair<int, int>> live_cells;
     
     std::vector<std::vector<char>> board;
     std::vector<std::vector<int>> current_around_count;
@@ -39,10 +40,10 @@ void update_around(std::vector<std::vector<int>> & around_count, int x, int y, i
 {
     // DEBUG PRINTS
     // std::cout << "Updatting (" << x << ", " << y << ") to" << update << std::endl;
-    bool is_under = x < (around_count.size() - 1);
+    bool is_under = (unsigned int)x < (around_count.size() - 1);
     bool is_above = x > 0;
     bool is_left = y > 0;
-    bool is_right = y < (around_count.size() - 1);
+    bool is_right = (unsigned int)y < (around_count.size() - 1);
     
     if (is_under) around_count[x + 1][y] += update;
     if (is_above) around_count[x - 1][y] += update;
@@ -74,21 +75,21 @@ void TheGame::display_board()
 
 void TheGame::assign_live_cells()
 {
-    for (int i = 0; i < this->live_cells.size(); i++)
+    for (const auto& elem: this->live_cells)
     {
-        this->board[this->live_cells[i].first][this->live_cells[i].second] = '*';
-        update_around(this->current_around_count, this->live_cells[i].first, this->live_cells[i].second, 1);
+        this->board[elem.first][elem.second] = '*';
+        update_around(this->current_around_count, elem.first, elem.second, 1);
     }
 }
 
 void TheGame::revive_glyder()
 {
     this->live_cells.clear();
-    this->live_cells.push_back(std::make_pair(2, 0));
-    this->live_cells.push_back(std::make_pair(2, 1));
-    this->live_cells.push_back(std::make_pair(2, 2));
-    this->live_cells.push_back(std::make_pair(0, 1));
-    this->live_cells.push_back(std::make_pair(1, 2));
+    this->live_cells.insert(std::make_pair(2, 0));
+    this->live_cells.insert(std::make_pair(2, 1));
+    this->live_cells.insert(std::make_pair(2, 2));
+    this->live_cells.insert(std::make_pair(0, 1));
+    this->live_cells.insert(std::make_pair(1, 2));
 }
 
 void TheGame::revive_cell()
@@ -112,7 +113,7 @@ void TheGame::revive_cell()
             std::cout << "Please, enter integer numbers more than 0 and less than " << this->size_of_board << std::endl;
             continue;
         }
-        this->live_cells.push_back(std::make_pair(x, y));
+        this->live_cells.insert(std::make_pair(x, y));
         break;
     }
 }
@@ -122,7 +123,7 @@ bool TheGame::next_step()
     bool something_changed = false;
     std::vector<std::vector<char>> new_board = this->board;
     std::vector<std::vector<int>> new_around_count = this->current_around_count;
-    std::vector<std::pair<int, int>> new_live_cells = this->live_cells;
+    auto new_live_cells = this->live_cells;
 
     for (int i = 0; i < this->size_of_board; i++)
     {
@@ -134,7 +135,7 @@ bool TheGame::next_step()
                 // DEBUG PRINTS
                 // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
                 new_board[i][j] = '-';
-                new_live_cells.erase(remove(new_live_cells.begin(), new_live_cells.end(), temp));
+                new_live_cells.erase(temp);
                 update_around(new_around_count, i, j, -1);
                 something_changed = true;
             }
@@ -144,7 +145,7 @@ bool TheGame::next_step()
                 // DEBUG PRINTS
                 // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
                 new_board[i][j] = '*';
-                new_live_cells.push_back(temp);
+                new_live_cells.insert(temp);
                 update_around(new_around_count, i, j, 1);
                 something_changed = true;
             }
