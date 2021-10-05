@@ -1,3 +1,7 @@
+#define MIN_SIZE_OF_BOARD 3
+#define MAX_SIZE_OF_BOARD 30
+
+
 #include <iostream>
 #include <vector>
 #include <utility>
@@ -18,14 +22,14 @@ class TheGame
 {
     int size_of_board;
     std::set<std::pair<int, int>> live_cells; // array of current live cells
-    std::vector<std::vector<int>> current_around_count; 
+    std::vector<std::vector<int>> current_around_count; // map of current cell's score
     
     public:
     int get_board_size();
     bool is_live_cells();
     void display_board();
-    void revive_cell();
-    void assign_live_cells();
+    void revive_new_cell();
+    void update_board();
     void revive_glyder();
     bool next_step();
 
@@ -36,15 +40,26 @@ class TheGame
     }
 };
 
+/** 
+ * When a cell revives or dies, this function adds or subtracts the score of its neighbors
+ *
+ * @param around_count Map of cells with score.
+ * @param x, y Coordinates of the cell  
+ * @param update Could be 1 or -1 to. This parameter shows how we need to change the score of the neighbors of the cell.
+ */ 
 void update_around(std::vector<std::vector<int>> & around_count, int x, int y, int update)
 {
-    // DEBUG PRINTS
-    // std::cout << "Updatting (" << x << ", " << y << ") to" << update << std::endl;
+    #ifdef DEBUG
+    std::cout << "Updating (" << x << ", " << y << ") to " << update << std::endl;
+    #endif
+
+    /* Check which neighbors the cell has*/
     bool is_under = (unsigned int)x < (around_count.size() - 1);
     bool is_above = x > 0;
     bool is_left = y > 0;
     bool is_right = (unsigned int)y < (around_count.size() - 1);
     
+    /* Update all the neighbors*/
     if (is_under) around_count[x + 1][y] += update;
     if (is_above) around_count[x - 1][y] += update;
     if (is_left) around_count[x][y - 1] += update;
@@ -55,16 +70,29 @@ void update_around(std::vector<std::vector<int>> & around_count, int x, int y, i
     if (is_above && is_right) around_count[x - 1][y + 1] += update;
 }
 
+/** 
+ * Get board size
+ * 
+ * @return Size if the board
+*/ 
 int TheGame::get_board_size()
 {
     return this->size_of_board;
 }
 
+/**
+ * Check if at least one cell is alive
+ * 
+ * @return False if there is no alive cells
+ */
 bool TheGame::is_live_cells()
 {
     return !live_cells.empty();
 }
 
+/**
+ * Display the current state of the game
+ */
 void TheGame::display_board()
 {
     for (int i = 0; i < this->size_of_board; i++)
@@ -85,7 +113,10 @@ void TheGame::display_board()
     std::cout << std::endl;
 }
 
-void TheGame::assign_live_cells()
+/**
+ * Put all revived cells on the board by increasing their's neighbor's score
+ */
+void TheGame::update_board()
 {
     for (const auto& elem: this->live_cells)
     {
@@ -93,6 +124,9 @@ void TheGame::assign_live_cells()
     }
 }
 
+/**
+ * Revive build-in pattern (glyder)
+ */
 void TheGame::revive_glyder()
 {
     this->live_cells.clear();
@@ -103,7 +137,10 @@ void TheGame::revive_glyder()
     this->live_cells.insert({1, 2});
 }
 
-void TheGame::revive_cell()
+/**
+ * Ask user to revive new cell
+ */
+void TheGame::revive_new_cell()
 {
     int x, y;
     std::stringstream ss;
@@ -129,49 +166,67 @@ void TheGame::revive_cell()
     }
 }
 
+/**
+ * Calculate next step of the game
+ * 
+ * @return False if there were no changes on the board in this step
+ */
 bool TheGame::next_step()
 {
     bool something_changed = false;
-    auto new_around_count = this->current_around_count;
-    auto new_live_cells = this->live_cells;
+    auto next_around_count = this->current_around_count; 
+    auto next_live_cells = this->live_cells;
 
     for (int i = 0; i < this->size_of_board; i++)
     {
         for (int j = 0; j < this->size_of_board; j++)
         {
             auto temp = std::make_pair(i, j);
-            if (((this->current_around_count[i][j] <= 1) || (this->current_around_count[i][j] >= 4)) && (this->live_cells.find(temp) != this-> live_cells.end()))
+            // If the cell is alive, but the number of its neighbors is too small or large for life
+            // It dies
+            if ((this->live_cells.find(temp) != this-> live_cells.end()) && ((this->current_around_count[i][j] <= 1) || (this->current_around_count[i][j] >= 4)))
             {
-                // DEBUG PRINTS
-                // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
-                new_live_cells.erase(temp);
-                update_around(new_around_count, i, j, -1);
+                #ifdef DEBUG
+                std::cout << "Around cell (" << i << ", " << j << ") is " << current_around_count[i][j] << " other cells" << std::endl;
+                #endif
+
+                next_live_cells.erase(temp);
+                update_around(next_around_count, i, j, -1);
                 something_changed = true;
             }
 
-            if (((this->current_around_count[i][j] == 3) && (this->live_cells.find(temp) == this-> live_cells.end())))
+            // If the cell is not alive, but the number of its neighbors meets the condition of revitalization
+            // It revives
+            if ((this->live_cells.find(temp) == this-> live_cells.end()) && ((this->current_around_count[i][j] == 3)))
             {
-                // DEBUG PRINTS
-                // std::cout << "Around cell (" << i << ", " << j << ") is " << around_count[i][j] << " other cells" << std::endl;
-                new_live_cells.insert(temp);
-                update_around(new_around_count, i, j, 1);
+                #ifdef DEBUG
+                std::cout << "Around cell (" << i << ", " << j << ") is " << current_around_count[i][j] << " other cells" << std::endl;
+                #endif
+
+                next_live_cells.insert(temp);
+                update_around(next_around_count, i, j, 1);
                 something_changed = true;
             }
         }
     }
-    this->live_cells = new_live_cells;
-    this->current_around_count = new_around_count;
-    // ------- UNCOMMENT TO DEBUG ------
-    // std::cout << "--Live cells--" << std::endl;
-    // for(int i = 0; i < live_cells.size(); i++)
-    // {
-    //     std::cout << "(" << live_cells[i].first << ", " << live_cells[i].second << ") " << std::endl;
-    // }
-    // std::cout << "--------------" << std::endl;
+    this->live_cells = next_live_cells;
+    this->current_around_count = next_around_count;
+
+    #ifdef DEBUG
+    std::cout << "--Live cells--" << std::endl;
+    for(const auto& elem: this->live_cells)
+    {
+        std::cout << "(" << elem.first << ", " << elem.second << ") " << std::endl;
+    }
+    std::cout << "--------------" << std::endl;
+    #endif
 
     return something_changed;
 }
 
+/**
+ * Print The Game of Life intro
+ */
 void say_hello()
 {
     std::cout << std::setfill('*') << std::setw(46) << std::left << "*" <<std::endl;
@@ -181,12 +236,13 @@ void say_hello()
 
 int main()
 {
-    int size_of_board;
     say_hello();
+
+    int size_of_board;
     while (true)
     {
         std::cout << "Please, enter the size of the side of the square board: ";
-        std::cin >> size_of_board; 
+        std::cin >> size_of_board;
         if(std::cin.fail()) 
         {
             std::cin.clear();
@@ -195,9 +251,9 @@ int main()
             continue;
         }   
 
-        if (size_of_board > 30)
+        if (size_of_board > MAX_SIZE_OF_BOARD)
         {
-            std::cout << "Your number is too large for the screen, we recommend using numbers no more than 30" << std::endl;
+            std::cout << "Your number is too large for the screen, we recommend using numbers no more than " << MAX_SIZE_OF_BOARD << std::endl;
             continue;
         }
         break;
@@ -208,7 +264,7 @@ int main()
     while (true)
     {
         std::string ans;
-        std::cout << ">> Choose: \n>> 1 - to revive one more cell \n>> 2 - to start the game\n>> 3 - to run prepared glyder\n: ";
+        std::cout << ">> Choose: \n>> 1 - to revive one more cell \n>> 2 - to start the game\n>> 3 - to run prepared glyder, previously revived cells will be killed\n: ";
         std::cin >> ans;
         if(ans.size() != 1)
         {
@@ -219,7 +275,7 @@ int main()
         }
         if (ans[0] == '1')
         {
-            new_game.revive_cell();
+            new_game.revive_new_cell();
             continue;
         }
         if (ans[0] == '2')
@@ -229,19 +285,18 @@ int main()
                 std::cout << "You have not revived a single cell, the game will not be interesting." << std::endl;
                 continue;
             }
-            new_game.assign_live_cells();
+            new_game.update_board();
             break;   
         }
         if (ans[0] == '3')
         {
-            if(new_game.get_board_size() < 3)
+            if(new_game.get_board_size() < MIN_SIZE_OF_BOARD)
             {
                 std::cout << "Sorry, game board is too small to run the glyder, please, choose other options." << std::endl;
                 continue;
             }
-            std::cout << "If you revived any cells, they will be killed to run glyder." << std::endl;
             new_game.revive_glyder();
-            new_game.assign_live_cells();
+            new_game.update_board();
             break;   
         }
         else
@@ -256,10 +311,9 @@ int main()
     while (true)
     {
         new_game.display_board();
-        std::cout << ">> Choose: \n>> 1 - to play game automatically \n>> 2 - to see one next step\n:" << std::endl;
+        std::cout << ">> Choose: \n>> 1 - to play game automatically \n>> 2 - to see one next step\n: ";
         std::string way;
         std::cin >> way;
-        bool something_changed = false;
         if(way.size() != 1)
         {
             std::cin.clear();
@@ -267,10 +321,12 @@ int main()
             std::cout << "Wrong input:" << way << ". Try again." << std::endl;
             continue;
         }
+
+        // if something_changed is false after calculating the next step it indicates end of the game
+        bool something_changed = false;
         if (way[0] == '2')
         {
-            something_changed = new_game.next_step();
-            if(!something_changed)
+            if(!new_game.next_step())
             {
                 std::cout << ">> END OF THE GAME << " << std::endl;
                 break;
@@ -283,7 +339,8 @@ int main()
             {
                 new_game.display_board();
                 something_changed = new_game.next_step();
-                
+
+                // time for the user to see the step
                 #ifdef _WIN32
                 Sleep(1000);
                 #else
